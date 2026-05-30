@@ -4,6 +4,7 @@ import { AuthService } from "./auth.service";
 const authService = new AuthService();
 
 export class AuthController {
+  // register a new parent
   async register(req: Request, res: Response, next: NextFunction) {
     try {
       const { name, email, password } = req.body;
