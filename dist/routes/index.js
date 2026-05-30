@@ -1,0 +1,22 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_routes_1 = __importDefault(require("../modules/auth/auth.routes"));
+const children_routes_1 = __importDefault(require("../modules/children/children.routes"));
+const devices_routes_1 = __importDefault(require("../modules/devices/devices.routes"));
+const locations_routes_1 = __importDefault(require("../modules/locations/locations.routes"));
+const app_usage_routes_1 = __importDefault(require("../modules/app-usage/app-usage.routes"));
+const social_spy_routes_1 = __importDefault(require("../modules/social-spy/social-spy.routes"));
+const notifications_routes_1 = __importDefault(require("../modules/notifications/notifications.routes"));
+const router = (0, express_1.Router)();
+router.use("/auth", auth_routes_1.default);
+router.use("/children", children_routes_1.default);
+router.use("/devices", devices_routes_1.default);
+router.use("/locations", locations_routes_1.default);
+router.use("/", app_usage_routes_1.default);
+router.use("/", social_spy_routes_1.default);
+router.use("/", notifications_routes_1.default);
+exports.default = router;
