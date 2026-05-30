@@ -12,7 +12,7 @@ const app: Application = express();
 app.use(helmet());
 app.use(
   cors({
-    origin: true, // Allow dashboard clients to exchange credentials dynamically
+    origin: true,
     credentials: true,
   })
 );
