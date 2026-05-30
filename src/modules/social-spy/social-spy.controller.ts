@@ -79,5 +79,20 @@ export class SocialSpyController {
       next(error);
     }
   }
+
+  // Parent generates mock logs for testing
+  async generateMock(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+    try {
+      const childId = req.params.childId;
+      if (!childId) {
+        return res.status(400).json({ success: false, message: "Child ID is required" });
+      }
+
+      const data = await socialSpyService.generateMockData(childId);
+      return res.status(201).json({ success: true, message: "Mock audit data generated successfully", data });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 export default SocialSpyController;

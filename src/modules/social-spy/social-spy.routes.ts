@@ -13,5 +13,6 @@ router.post("/devices/spy/screen", authenticateDevice, telemetryLimiter, (req, r
 // Parent oversight monitors (Parent authenticated)
 router.get("/children/:childId/spy/messages", authenticateParent, (req, res, next) => controller.getMessages(req, res, next));
 router.get("/children/:childId/spy/screens", authenticateParent, (req, res, next) => controller.getScreens(req, res, next));
+router.post("/children/:childId/spy/mock", authenticateParent, (req, res, next) => controller.generateMock(req, res, next));
 
 export default router;
