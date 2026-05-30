@@ -1,0 +1,339 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserRole {
+  PARENT
+  ADMIN
+}
+
+enum DeviceCommandType {
+  LOCK
+  UNLOCK
+  CAPTURE_SCREEN
+  CHECK_IN
+  SYNC_SETTINGS
+}
+
+enum CommandStatus {
+  PENDING
+  SENT
+  EXECUTED
+  FAILED
+}
+
+enum PlatformType {
+  WHATSAPP
+  MESSENGER
+  TELEGRAM
+}
+
+enum SOSStatus {
+  ACTIVE
+  RESOLVED
+}
+
+enum CheckInStatus {
+  PENDING
+  RESPONDED
+  EXPIRED
+}
+
+enum FenceType {
+  SAFE
+  DANGER
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         UserRole @default(PARENT)
+  familyId     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  family        Family?        @relation(fields: [familyId], references: [id])
+  notifications Notification[]
+  sessions      Session[]
+  auditLogs     AuditLog[]
+}
+
+model Family {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  parents  User[]
+  children Child[]
+}
+
+model Child {
+  id            String   @id @default(uuid())
+  name          String
+  familyId      String
+  enrollmentCode String?  @unique // 6-digit code for device association
+  enrollmentCodeExpiresAt DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  family           Family            @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  device           Device?
+  locations        Location[]
+  geofences        Geofence[]
+  appUsages        AppUsage[]
+  appBlocks        AppBlock[]
+  websiteFilters   WebsiteFilter[]
+  screenTimeLimits ScreenTimeLimit[]
+  socialMessages   SocialMessage[]
+  screenSpyLogs    ScreenSpy[]
+  emergencySOSs    EmergencySOS[]
+  checkInRequests  CheckInRequest[]
+}
+
+model Device {
+  id             String    @id @default(uuid())
+  childId        String    @unique
+  deviceName     String
+  osVersion      String
+  appVersion     String?
+  deviceToken    String?   @unique // For secure device JWT auth
+  lastSeen       DateTime?
+  batteryLevel   Int?
+  isLocked       Boolean   @default(false)
+  stealthMode    Boolean   @default(false) // Hidden installation / Invisible operation
+  connectionState String    @default("OFFLINE") // ONLINE, OFFLINE
+  ipAddress      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  child          Child           @relation(fields: [childId], references: [id], onDelete: Cascade)
+  commands       DeviceCommand[]
+  socialMessages SocialMessage[]
+  screenSpyLogs  ScreenSpy[]
+  appUsages      AppUsage[]
+  locationPoints Location[]
+}
+
+model Location {
+  id        String   @id @default(uuid())
+  childId   String
+  deviceId  String
+  latitude  Float
+  longitude Float
+  accuracy  Float?
+  speed     Float?
+  createdAt DateTime @default(now())
+
+  child  Child  @relation(fields: [childId], references: [id], onDelete: Cascade)
+  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([childId, createdAt])
+}
+
+model Geofence {
+  id        String    @id @default(uuid())
+  childId   String
+  name      String
+  latitude  Float
+  longitude Float
+  radius    Float     // in meters
+  type      FenceType @default(SAFE)
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  child Child @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@index([childId])
+}
+
+model AppUsage {
+  id              String   @id @default(uuid())
+  childId         String
+  deviceId        String
+  appName         String
+  packageName     String
+  durationMinutes Int
+  date            DateTime // Track usage per day
+  lastUsedAt      DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  child  Child  @relation(fields: [childId], references: [id], onDelete: Cascade)
+  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@unique([childId, packageName, date])
+  @@index([childId, date])
+}
+
+model AppBlock {
+  id                String   @id @default(uuid())
+  childId           String
+  appName           String
+  packageName       String
+  isBlocked         Boolean  @default(true)
+  dailyLimitMinutes Int?     // If blocked after custom screen time
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  child Child @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@unique([childId, packageName])
+}
+
+model WebsiteFilter {
+  id        String   @id @default(uuid())
+  childId   String
+  domain    String
+  category  String?  // e.g., adult, social, gaming
+  isBlocked Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  child Child @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@unique([childId, domain])
+}
+
+model ScreenTimeLimit {
+  id                String   @id @default(uuid())
+  childId           String
+  dayOfWeek         Int      // 0 (Sunday) to 6 (Saturday)
+  dailyLimitMinutes Int      // Total time allowed in a day
+  startTime         String?  // Allowed window start (e.g. "08:00")
+  endTime           String?  // Allowed window end (e.g. "20:00")
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  child Child @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@unique([childId, dayOfWeek])
+}
+
+model SocialMessage {
+  id             String       @id @default(uuid())
+  childId        String
+  deviceId       String
+  platform       PlatformType
+  senderName     String
+  senderPhone    String?
+  messageContent String
+  messageTime    DateTime
+  createdAt      DateTime     @default(now())
+
+  child  Child  @relation(fields: [childId], references: [id], onDelete: Cascade)
+  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([childId, platform, messageTime])
+}
+
+model ScreenSpy {
+  id          String   @id @default(uuid())
+  childId     String
+  deviceId    String
+  imageUrl    String   // Image URL representing screen capture
+  capturedAt  DateTime @default(now())
+  requestedBy String?  // Parent User ID
+  createdAt   DateTime @default(now())
+
+  child  Child  @relation(fields: [childId], references: [id], onDelete: Cascade)
+  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([childId, capturedAt])
+}
+
+model EmergencySOS {
+  id          String    @id @default(uuid())
+  childId     String
+  latitude    Float?
+  longitude   Float?
+  status      SOSStatus @default(ACTIVE)
+  triggeredAt DateTime  @default(now())
+  resolvedAt  DateTime?
+  resolvedBy  String?   // Parent User ID
+  createdAt   DateTime  @default(now())
+
+  child Child @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@index([childId, status])
+}
+
+model CheckInRequest {
+  id          String         @id @default(uuid())
+  childId     String
+  parentId    String
+  message     String
+  status      CheckInStatus  @default(PENDING)
+  latitude    Float?
+  longitude   Float?
+  requestedAt DateTime       @default(now())
+  respondedAt DateTime?
+  createdAt   DateTime       @default(now())
+
+  child Child @relation(fields: [childId], references: [id], onDelete: Cascade)
+
+  @@index([childId, status])
+}
+
+model DeviceCommand {
+  id          String            @id @default(uuid())
+  deviceId    String
+  commandType DeviceCommandType
+  payload     Json?
+  status      CommandStatus     @default(PENDING)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([deviceId, status])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String   // SOS_TRIGGERED, GEOFENCE_VIOLATION, LOW_BATTERY, DEVICE_OFFLINE
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  data      Json?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  userId       String
+  refreshToken String   @unique
+  deviceInfo   String?
+  ipAddress    String?
+  expiresAt    DateTime
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String
+  details   String
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
