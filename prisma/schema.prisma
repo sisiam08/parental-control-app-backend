@@ -1,6 +1,5 @@
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 generator client {
@@ -31,6 +30,7 @@ enum PlatformType {
   WHATSAPP
   MESSENGER
   TELEGRAM
+  SMS
 }
 
 enum SOSStatus {
@@ -76,13 +76,13 @@ model Family {
 }
 
 model Child {
-  id            String   @id @default(uuid())
-  name          String
-  familyId      String
-  enrollmentCode String?  @unique // 6-digit code for device association
+  id                      String    @id @default(uuid())
+  name                    String
+  familyId                String
+  enrollmentCode          String?   @unique // 6-digit code for device association
   enrollmentCodeExpiresAt DateTime?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
 
   family           Family            @relation(fields: [familyId], references: [id], onDelete: Cascade)
   device           Device?
@@ -99,20 +99,20 @@ model Child {
 }
 
 model Device {
-  id             String    @id @default(uuid())
-  childId        String    @unique
-  deviceName     String
-  osVersion      String
-  appVersion     String?
-  deviceToken    String?   @unique // For secure device JWT auth
-  lastSeen       DateTime?
-  batteryLevel   Int?
-  isLocked       Boolean   @default(false)
-  stealthMode    Boolean   @default(false) // Hidden installation / Invisible operation
+  id              String    @id @default(uuid())
+  childId         String    @unique
+  deviceName      String
+  osVersion       String
+  appVersion      String?
+  deviceToken     String?   @unique // For secure device JWT auth
+  lastSeen        DateTime?
+  batteryLevel    Int?
+  isLocked        Boolean   @default(false)
+  stealthMode     Boolean   @default(false) // Hidden installation / Invisible operation
   connectionState String    @default("OFFLINE") // ONLINE, OFFLINE
-  ipAddress      String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  ipAddress       String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   child          Child           @relation(fields: [childId], references: [id], onDelete: Cascade)
   commands       DeviceCommand[]
@@ -144,7 +144,7 @@ model Geofence {
   name      String
   latitude  Float
   longitude Float
-  radius    Float     // in meters
+  radius    Float // in meters
   type      FenceType @default(SAFE)
   isActive  Boolean   @default(true)
   createdAt DateTime  @default(now())
@@ -180,7 +180,7 @@ model AppBlock {
   appName           String
   packageName       String
   isBlocked         Boolean  @default(true)
-  dailyLimitMinutes Int?     // If blocked after custom screen time
+  dailyLimitMinutes Int? // If blocked after custom screen time
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -193,7 +193,7 @@ model WebsiteFilter {
   id        String   @id @default(uuid())
   childId   String
   domain    String
-  category  String?  // e.g., adult, social, gaming
+  category  String? // e.g., adult, social, gaming
   isBlocked Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -206,10 +206,10 @@ model WebsiteFilter {
 model ScreenTimeLimit {
   id                String   @id @default(uuid())
   childId           String
-  dayOfWeek         Int      // 0 (Sunday) to 6 (Saturday)
-  dailyLimitMinutes Int      // Total time allowed in a day
-  startTime         String?  // Allowed window start (e.g. "08:00")
-  endTime           String?  // Allowed window end (e.g. "20:00")
+  dayOfWeek         Int // 0 (Sunday) to 6 (Saturday)
+  dailyLimitMinutes Int // Total time allowed in a day
+  startTime         String? // Allowed window start (e.g. "08:00")
+  endTime           String? // Allowed window end (e.g. "20:00")
   isActive          Boolean  @default(true)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -240,9 +240,9 @@ model ScreenSpy {
   id          String   @id @default(uuid())
   childId     String
   deviceId    String
-  imageUrl    String   // Image URL representing screen capture
+  imageUrl    String // Image URL representing screen capture
   capturedAt  DateTime @default(now())
-  requestedBy String?  // Parent User ID
+  requestedBy String? // Parent User ID
   createdAt   DateTime @default(now())
 
   child  Child  @relation(fields: [childId], references: [id], onDelete: Cascade)
@@ -259,7 +259,7 @@ model EmergencySOS {
   status      SOSStatus @default(ACTIVE)
   triggeredAt DateTime  @default(now())
   resolvedAt  DateTime?
-  resolvedBy  String?   // Parent User ID
+  resolvedBy  String? // Parent User ID
   createdAt   DateTime  @default(now())
 
   child Child @relation(fields: [childId], references: [id], onDelete: Cascade)
@@ -268,16 +268,16 @@ model EmergencySOS {
 }
 
 model CheckInRequest {
-  id          String         @id @default(uuid())
+  id          String        @id @default(uuid())
   childId     String
   parentId    String
   message     String
-  status      CheckInStatus  @default(PENDING)
+  status      CheckInStatus @default(PENDING)
   latitude    Float?
   longitude   Float?
-  requestedAt DateTime       @default(now())
+  requestedAt DateTime      @default(now())
   respondedAt DateTime?
-  createdAt   DateTime       @default(now())
+  createdAt   DateTime      @default(now())
 
   child Child @relation(fields: [childId], references: [id], onDelete: Cascade)
 
@@ -301,7 +301,7 @@ model DeviceCommand {
 model Notification {
   id        String   @id @default(uuid())
   userId    String
-  type      String   // SOS_TRIGGERED, GEOFENCE_VIOLATION, LOW_BATTERY, DEVICE_OFFLINE
+  type      String // SOS_TRIGGERED, GEOFENCE_VIOLATION, LOW_BATTERY, DEVICE_OFFLINE
   title     String
   message   String
   isRead    Boolean  @default(false)

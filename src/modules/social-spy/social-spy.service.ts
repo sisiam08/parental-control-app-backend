@@ -2,7 +2,17 @@ import prisma from "../../config/database";
 import { PlatformType } from "@prisma/client";
 
 export class SocialSpyService {
-  async saveMessages(deviceId: string, childId: string, messages: Array<{ platform: PlatformType; senderName: string; senderPhone?: string; messageContent: string; messageTime: string }>) {
+  async saveMessages(
+    deviceId: string,
+    childId: string,
+    messages: Array<{
+      platform: PlatformType;
+      senderName: string;
+      senderPhone?: string;
+      messageContent: string;
+      messageTime: string;
+    }>,
+  ) {
     const results = [];
     for (const msg of messages) {
       const saved = await prisma.socialMessage.create({
@@ -22,11 +32,12 @@ export class SocialSpyService {
   }
 
   async getMessages(childId: string, platform?: PlatformType) {
+    const where: any = { childId };
+    if (platform) {
+      where.platform = platform;
+    }
     return await prisma.socialMessage.findMany({
-      where: {
-        childId,
-        platform: platform || undefined,
-      },
+      where,
       orderBy: { messageTime: "desc" },
       take: 200,
     });
@@ -107,13 +118,15 @@ export class SocialSpyService {
       {
         childId,
         deviceId,
-        imageUrl: "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=600&q=80",
+        imageUrl:
+          "https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=600&q=80",
         capturedAt: new Date(Date.now() - 10 * 60 * 1000),
       },
       {
         childId,
         deviceId,
-        imageUrl: "https://images.unsplash.com/photo-1608111283390-2e333b9b279c?auto=format&fit=crop&w=600&q=80",
+        imageUrl:
+          "https://images.unsplash.com/photo-1608111283390-2e333b9b279c?auto=format&fit=crop&w=600&q=80",
         capturedAt: new Date(Date.now() - 30 * 60 * 1000),
       },
     ];
