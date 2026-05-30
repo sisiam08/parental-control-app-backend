@@ -35,11 +35,11 @@ export async function seed() {
   });
 
   // 3. Create parent user
-  const passwordHash = await bcrypt.hash("password123", 10);
+  const passwordHash = await bcrypt.hash("superadmin123", 10);
   const parent = await prisma.user.create({
     data: {
-      name: "John Doe",
-      email: "parent@safety.com",
+      name: "Super Admin",
+      email: "superadmin@safety.com",
       passwordHash,
       role: "PARENT",
       familyId: family.id,
@@ -355,13 +355,12 @@ export async function seed() {
   console.log("✅ Seeding completed successfully!");
 }
 
-if (require.main === module) {
-  seed()
-    .catch((e) => {
-      console.error("💥 Error seeding database:", e);
-      process.exit(1);
-    })
-    .finally(async () => {
-      await prisma.$disconnect();
-    });
-}
+seed()
+  .catch((e) => {
+    console.error("💥 Error seeding database:", e);
+    // eslint-disable-next-line no-process-exit
+    throw e;
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
